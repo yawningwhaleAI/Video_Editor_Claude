@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>0 to $5K Video Editor — Reel Design</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter+Tight:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    /* Claude-chat beige */
+    --bg:#F3EEE3; --surface:#FBF8F1; --surface-2:#EAE1D1;
+    --ink:#2A2520; --ink-soft:#6E6253; --line:#CDBEA3;
+    --accent:#C2603F; --accent-2:#3F6B63; --accent-3:#D9A441;
+    --font-display:'Bricolage Grotesque', Georgia, serif;
+    --font-body:'Inter Tight', system-ui, sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{ background:#1c1916; font-family:var(--font-body); color:var(--ink);
+    display:flex; flex-direction:column; align-items:center; min-height:100vh;
+    padding:24px 0 40px; gap:20px; -webkit-font-smoothing:antialiased; }
+
+  #scaler{ transform-origin:top center; }
+  #stage{ width:1080px; height:1920px; position:relative; background:var(--bg);
+    overflow:hidden; border-radius:18px; box-shadow:0 30px 90px rgba(0,0,0,.5); }
+  #stage::after{ content:""; position:absolute; inset:0; pointer-events:none; opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E"); }
+
+  #design-zone{ position:absolute; inset:0 0 960px 0; overflow:hidden; }
+  #video-zone{ position:absolute; inset:960px 0 0 0; display:flex; align-items:center; justify-content:center;
+    background:repeating-linear-gradient(45deg, rgba(0,0,0,.018) 0 22px, transparent 22px 44px), var(--surface-2);
+    border-top:2px dashed var(--line); }
+  #video-zone .vz-label{ font-family:var(--font-body); color:var(--ink-soft); font-size:30px;
+    letter-spacing:.04em; text-align:center; opacity:.6; margin-top:120px; }
+  #video-zone .vz-label small{ display:block; font-size:20px; margin-top:8px; opacity:.8; }
+
+  /* scenes occupy the TOP zone; bottom padding keeps content clear of the caption band */
+  .scene{ position:absolute; inset:0; padding:78px 78px 230px; display:flex; flex-direction:column;
+    justify-content:center; opacity:0; visibility:hidden; }
+  .scene.active{ opacity:1; visibility:visible; }
+
+  .kicker{ font-family:var(--font-body); color:var(--accent); font-weight:800;
+    letter-spacing:.14em; text-transform:uppercase; font-size:25px; display:inline-flex; align-items:center; gap:14px; }
+  .kicker .num{ background:var(--accent); color:#fff; border-radius:8px; padding:4px 12px; font-size:23px; }
+  .head{ font-family:var(--font-display); color:var(--ink); line-height:1.0;
+    font-weight:800; letter-spacing:-.02em; }
+  .support{ font-family:var(--font-body); color:var(--ink-soft); font-size:33px; line-height:1.36; }
+  .em{ color:var(--accent); }
+  .index{ position:absolute; top:60px; right:78px; font-family:var(--font-display);
+    font-size:40px; color:var(--line); font-weight:800; }
+
+  /* animation utilities */
+  .anim-fade-up,.anim-fade-in,.anim-scale,.anim-slide-l,.anim-slide-r,.anim-blur{
+    opacity:0; animation-fill-mode:forwards; animation-duration:.85s;
+    animation-timing-function:var(--ease); animation-delay:var(--d,0s); }
+  .scene.active .anim-fade-up{ animation-name:fadeUp; }
+  .scene.active .anim-fade-in{ animation-name:fadeIn; }
+  .scene.active .anim-scale  { animation-name:scaleIn; }
+  .scene.active .anim-slide-l{ animation-name:slideL; }
+  .scene.active .anim-slide-r{ animation-name:slideR; }
+  .scene.active .anim-blur   { animation-name:blurIn; }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(46px)} to{opacity:1; transform:none} }
+  @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+  @keyframes scaleIn{ from{opacity:0; transform:scale(.82)} to{opacity:1; transform:scale(1)} }
+  @keyframes slideL{ from{opacity:0; transform:translateX(70px)} to{opacity:1; transform:none} }
+  @keyframes slideR{ from{opacity:0; transform:translateX(-70px)} to{opacity:1; transform:none} }
+  @keyframes blurIn{ from{opacity:0; filter:blur(14px)} to{opacity:1; filter:blur(0)} }
+  .scene.active .draw{ stroke-dasharray:1; stroke-dashoffset:1;
+    animation:draw 1.3s var(--ease) forwards; animation-delay:var(--d,0s); }
+  @keyframes draw{ to{ stroke-dashoffset:0 } }
+  .float{ animation:float 5.5s ease-in-out infinite; }
+  @keyframes float{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+  .spin-slow{ animation:spin 26s linear infinite; transform-origin:center; }
+  @keyframes spin{ to{ transform:rotate(360deg) } }
+  @media (prefers-reduced-motion: reduce){ *{ animation-duration:.001s !important; animation-iteration-count:1 !important; } }
+
+  /* ---- CAPTION BAND — straddles the 50/50 seam, animates word-by-word ---- */
+  #cap-layer{ position:absolute; inset:0; pointer-events:none; z-index:6; }
+  #cap-band{ position:absolute; left:70px; right:70px; top:842px; min-height:200px;
+    display:flex; align-items:center; justify-content:center; }
+  #cap-inner{ background:rgba(250,246,238,.94); border:2px solid rgba(205,190,163,.7);
+    border-radius:26px; padding:26px 40px; max-width:940px; text-align:center;
+    box-shadow:0 14px 40px rgba(0,0,0,.16); }
+  #cap-inner span{ font-family:var(--font-body); font-weight:800; font-size:46px; line-height:1.3;
+    color:var(--ink-soft); opacity:.5; letter-spacing:-.01em; display:inline-block; margin:0 .16em;
+    transition:color .18s, opacity .18s, transform .18s; }
+  #cap-inner span.lit{ color:var(--ink); opacity:1; }
+  #cap-inner span.cur{ color:var(--accent); opacity:1; transform:translateY(-2px) scale(1.04); }
+
+  /* controls */
+  #controls{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:center;
+    font-family:var(--font-body); color:#e8e0d2; max-width:580px; }
+  #controls button{ background:#2c2622; color:#f3ead9; border:1px solid #4a3f33; padding:11px 18px;
+    border-radius:10px; font-size:15px; cursor:pointer; transition:background .2s, transform .1s; }
+  #controls button:hover{ background:#3a322a; }
+  #controls button:active{ transform:translateY(1px); }
+  #controls .primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  #seg-readout{ font-size:14px; opacity:.85; min-width:250px; text-align:center; }
+  #progress{ width:100%; max-width:580px; height:6px; background:#3a332b; border-radius:99px; overflow:hidden; }
+  #progress span{ display:block; height:100%; width:0; background:var(--accent); transition:width .12s linear; }
+  .hint{ font-family:var(--font-body); color:#9b8f7c; font-size:13px; max-width:580px; text-align:center; line-height:1.5; }
+</style>
+</head>
+<body>
+
+  <div id="scaler">
+    <div id="stage">
+      <div id="design-zone">
+
+        <!-- SCENE 1 — Hook -->
+        <section class="scene active" data-seg="0">
+          <span class="index anim-fade-in" style="--d:.6s">01</span>
+          <div class="kicker anim-fade-up" style="--d:.05s">As a video editor</div>
+          <h1 class="head anim-fade-up" style="--d:.18s; font-size:104px; margin:20px 0 26px; max-width:12ch;">Zero to <span class="em">$5K</span> a month.</h1>
+          <p class="support anim-fade-up" style="--d:.32s; max-width:22ch;">Three moves that got me there.</p>
+          <div class="anim-fade-up" style="--d:.46s; margin-top:40px; align-self:center;">
+            <svg width="540" height="280" viewBox="0 0 540 280" fill="none">
+              <line x1="44" y1="244" x2="520" y2="244" stroke="var(--line)" stroke-width="3"/>
+              <line x1="44" y1="20" x2="44" y2="244" stroke="var(--line)" stroke-width="3"/>
+              <rect class="anim-scale" style="--d:.6s; transform-origin:bottom;" x="90"  y="184" width="74" height="60"  rx="10" fill="var(--surface-2)"/>
+              <rect class="anim-scale" style="--d:.74s; transform-origin:bottom;" x="200" y="138" width="74" height="106" rx="10" fill="var(--accent-3)"/>
+              <rect class="anim-scale" style="--d:.88s; transform-origin:bottom;" x="310" y="92"  width="74" height="152" rx="10" fill="var(--accent-2)"/>
+              <rect class="anim-scale" style="--d:1.02s; transform-origin:bottom;" x="420" y="44" width="74" height="200" rx="10" fill="var(--accent)"/>
+              <path class="draw" style="--d:1.1s" d="M70 224 L457 64" stroke="var(--ink)" stroke-width="6" stroke-linecap="round" stroke-dasharray="1" pathLength="1"/>
+              <text x="74" y="276" font-family="Inter Tight" font-size="24" font-weight="700" fill="var(--ink-soft)">$0</text>
+              <text x="494" y="34" text-anchor="end" font-family="Bricolage Grotesque" font-size="34" font-weight="800" fill="var(--accent)">$5K</text>
+            </svg>
+          </div>
+        </section>
+
+        <!-- SCENE 2 — Cold DMs -->
+        <section class="scene" data-seg="1">
+          <span class="index anim-fade-in" style="--d:.6s">02</span>
+          <div class="kicker anim-fade-up" style="--d:.05s"><span class="num">01</span> Cold DMs</div>
+          <h1 class="head anim-fade-up" style="--d:.18s; font-size:96px; margin:20px 0 24px; max-width:13ch;">Start a <span class="em">conversation.</span></h1>
+          <p class="support anim-fade-up" style="--d:.32s; max-width:22ch;">Don&rsquo;t set your offer yet. Just open the door.</p>
+          <div class="anim-fade-up float" style="--d:.46s; margin-top:46px; align-self:center;">
+            <svg width="500" height="270" viewBox="0 0 500 270" fill="none">
+              <!-- incoming bubble -->
+              <path class="anim-slide-r" style="--d:.6s" d="M40 40 h250 a26 26 0 0 1 26 26 v70 a26 26 0 0 1 -26 26 h-210 l-40 36 v-36 a26 26 0 0 1 -26 -26 v-70 a26 26 0 0 1 26 -26 Z" fill="var(--surface)" stroke="var(--ink)" stroke-width="4"/>
+              <circle cx="100" cy="100" r="9" fill="var(--ink-soft)"/><circle cx="150" cy="100" r="9" fill="var(--ink-soft)"/><circle cx="200" cy="100" r="9" fill="var(--ink-soft)"/>
+              <!-- outgoing bubble -->
+              <path class="anim-slide-l" style="--d:.82s" d="M200 150 h250 a26 26 0 0 1 26 26 v54 a26 26 0 0 1 -26 26 h-210 l-40 30 v-30 a26 26 0 0 1 -26 -26 v-54 a26 26 0 0 1 26 -26 Z" fill="var(--accent)"/>
+              <circle cx="270" cy="203" r="9" fill="#fff"/><circle cx="320" cy="203" r="9" fill="#fff" opacity=".7"/><circle cx="370" cy="203" r="9" fill="#fff" opacity=".4"/>
+            </svg>
+          </div>
+        </section>
+
+        <!-- SCENE 3 — Pitch too early -->
+        <section class="scene" data-seg="2">
+          <span class="index anim-fade-in" style="--d:.6s">03</span>
+          <div class="kicker anim-fade-up" style="--d:.05s">The mistake</div>
+          <h1 class="head anim-fade-up" style="--d:.18s; font-size:98px; margin:20px 0 24px; max-width:12ch;">Pitch early? <span class="em">Left on read.</span></h1>
+          <p class="support anim-fade-up" style="--d:.32s; max-width:23ch;">Lead with the offer and they go quiet. No wonder they never reply.</p>
+          <div class="anim-scale" style="--d:.46s; margin-top:40px; align-self:center;">
+            <svg width="440" height="250" viewBox="0 0 440 250" fill="none">
+              <path d="M60 30 h300 a28 28 0 0 1 28 28 v86 a28 28 0 0 1 -28 28 h-250 l-46 40 v-40 a28 28 0 0 1 -28 -28 v-86 a28 28 0 0 1 28 -28 Z" fill="var(--accent)"/>
+              <text x="100" y="112" font-family="Inter Tight" font-size="40" font-weight="800" fill="#fff">Hire me?</text>
+              <!-- read ticks, grey + waiting -->
+              <path class="draw" style="--d:.9s" d="M300 150 l16 16 l30 -34 M324 150 l16 16 l30 -34" stroke="var(--ink-soft)" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round" pathLength="1"/>
+              <g class="anim-fade-in" style="--d:1.2s" transform="translate(360,40)">
+                <circle r="30" fill="var(--surface)" stroke="var(--ink)" stroke-width="4"/>
+                <line x1="0" y1="0" x2="0" y2="-16" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/>
+                <line x1="0" y1="0" x2="13" y2="6" stroke="var(--ink)" stroke-width="5" stroke-linecap="round"/>
+              </g>
+            </svg>
+          </div>
+        </section>
+
+        <!-- SCENE 4 — Comment 5k (mini CTA) -->
+        <section class="scene" data-seg="3">
+          <span class="index anim-fade-in" style="--d:.6s">04</span>
+          <div class="kicker anim-fade-up" style="--d:.05s">Free scripts</div>
+          <h1 class="head anim-fade-up" style="--d:.18s; font-size:96px; margin:20px 0 24px; max-width:13ch;">Comment <span class="em">&ldquo;5k&rdquo;</span></h1>
+          <p class="support anim-fade-up" style="--d:.32s; max-width:23ch;">I&rsquo;ll send the exact DM scripts I used to close cold leads.</p>
+          <div class="anim-scale" style="--d:.46s; margin-top:46px; align-self:center;">
+            <svg width="520" height="170" viewBox="0 0 520 170" fill="none">
+              <rect x="20" y="50" width="380" height="84" rx="42" fill="var(--surface)" stroke="var(--ink)" stroke-width="4"/>
+              <text x="60" y="105" font-family="Inter Tight" font-size="46" font-weight="800" fill="var(--accent)">5k</text>
+              <line class="anim-fade-in" style="--d:1s" x1="118" y1="74" x2="118" y2="110" stroke="var(--accent)" stroke-width="4" stroke-linecap="round"/>
+              <!-- send button -->
+              <g transform="translate(448,92)"><g class="anim-scale" style="--d:.9s">
+                <circle r="46" fill="var(--accent)"/>
+                <path d="M-18 -16 L20 0 L-18 16 L-10 0 Z" fill="#fff"/>
+              </g></g>
+            </svg>
+          </div>
+        </section>
+
+        <!-- SCENE 5 — Give value first -->
+        <section class="scene" data-seg="4">
+          <span class="index anim-fade-in" style="--d:.6s">05</span>
+          <div class="kicker anim-fade-up" style="--d:.05s"><span class="num">02</span> Value first</div>
+          <h1 class="head anim-fade-up" style="--d:.18s; font-size:100px; margin:20px 0 24px; max-width:12ch;">Give before <span class="em">you ask.</span></h1>
+          <p class="support anim-fade-up" style="--d:.32s; max-width:23ch;">If your outreach is all about you, nobody cares.</p>
+          <div class="anim-scale float" style="--d:.46s; margin-top:30px; align-self:center;">
+            <svg width="300" height="280" viewBox="0 0 300 280" fill="none">
+              <rect x="50" y="120" width="200" height="140" rx="14" fill="var(--accent)"/>
+              <rect x="50" y="98" width="200" height="46" rx="12" fill="var(--accent-2)"/>
+              <rect x="132" y="98" width="36" height="162" fill="var(--accent-3)"/>
+              <path d="M150 98 C120 60 90 60 96 86 C100 104 134 98 150 98 Z" fill="var(--accent-3)"/>
+              <path d="M150 98 C180 60 210 60 204 86 C200 104 166 98 150 98 Z" fill="var(--accent-3)"/>
+              <path class="draw" style="--d:1s" d="M150 50 l8 22 l22 4 l-16 16 l4 22 l-18 -12 l-18 12 l4 -22 l-16 -16 l22 -4 Z" stroke="var(--ink)" stroke-width="4" fill="none" stroke-linejoin="round" pathLength="1"/>
+            </svg>
+          </div>
+        </section>
+
+        <!-- SCENE 6 — Send a usable asset -->
+        <section class="scene" data-seg="5">
+          <span class="index anim-fade-in" style="--d:.6s">06</span>
+          <div class="kicker anim-fade-up" style="--d:.05s">Make it usable</div>
+          <h1 class="head anim-fade-up" style="--d:.18s; font-size:90px; margin:20px 0 24px; max-width:13ch;">A better edit, hook <span class="em">or script.</span></h1>
+          <p class="support anim-fade-up" style="--d:.32s; max-width:23ch;">Something they can apply in their niche today.</p>
+          <div class="anim-fade-up" style="--d:.46s; margin-top:40px; align-self:center;">
+            <svg width="520" height="260" viewBox="0 0 520 260" fill="none">
+              <rect x="40" y="30" width="440" height="150" rx="16" fill="var(--ink)"/>
+              <path class="anim-scale" style="--d:.7s" d="M218 78 L300 105 L218 132 Z" fill="var(--bg)"/>
+              <!-- scrubber -->
+              <line x1="40" y1="210" x2="480" y2="210" stroke="var(--line)" stroke-width="6" stroke-linecap="round"/>
+              <line class="draw" style="--d:.9s" x1="40" y1="210" x2="330" y2="210" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" pathLength="1"/>
+              <circle class="anim-scale" style="--d:1.3s" cx="330" cy="210" r="14" fill="var(--accent)"/>
+              <!-- hook tag -->
+              <g transform="translate(360,46)"><g class="anim-slide-l" style="--d:1s">
+                <rect width="104" height="46" rx="23" fill="var(--accent-3)"/>
+                <text x="52" y="32" text-anchor="middle" font-family="Inter Tight" font-size="26" font-weight="800" fill="var(--ink)">hook</text>
+              </g></g>
+            </svg>
+          </div>
+        </section>
+
+        <!-- SCENE 7 — Create content -->
+        <section class="scene" data-seg="6">
+          <span class="index anim-fade-in" style="--d:.6s">07</span>
+          <div class="kicker anim-fade-up" style="--d:.05s"><span class="num">03</span> Create content</div>
+          <h1 class="head anim-fade-up" style="--d:.18s; font-size:92px; margin:20px 0 24px; max-width:13ch;">Post, and leads <span class="em">come to you.</span></h1>
+          <p class="support anim-fade-up" style="--d:.32s; max-width:24ch;">Every post builds your brand and positions you as the expert.</p>
+          <div class="anim-fade-up" style="--d:.46s; margin-top:34px; align-self:center;">
+            <svg width="560" height="250" viewBox="0 0 560 250" fill="none">
+              <!-- megaphone broadcasting (left) -->
+              <g class="anim-slide-r" style="--d:.7s">
+                <rect x="28" y="104" width="22" height="34" rx="6" fill="var(--accent-2)"/>
+                <path d="M50 98 L138 70 L138 172 L50 144 Z" fill="var(--accent)"/>
+                <path d="M138 84 L176 70 L176 172 L138 158 Z" fill="var(--accent-3)"/>
+                <path class="draw" style="--d:1.1s" d="M196 80 q22 -6 40 -2 M198 116 q26 0 48 6 M196 152 q22 6 40 16" stroke="var(--accent)" stroke-width="5" fill="none" stroke-linecap="round" pathLength="1"/>
+              </g>
+              <!-- content cards flying out (right), clearly spaced -->
+              <g transform="translate(296,28)"><g class="anim-scale" style="--d:1.0s"><rect width="68" height="86" rx="11" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/><path d="M34 62 l-15 -15 a9 9 0 0 1 15 -11 a9 9 0 0 1 15 11 Z" fill="var(--accent)"/></g></g>
+              <g transform="translate(404,80)"><g class="anim-scale" style="--d:1.18s"><rect width="68" height="86" rx="11" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/><path d="M34 62 l-15 -15 a9 9 0 0 1 15 -11 a9 9 0 0 1 15 11 Z" fill="var(--accent-3)"/></g></g>
+              <g transform="translate(316,142)"><g class="anim-scale" style="--d:1.34s"><rect width="68" height="86" rx="11" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/><path d="M34 62 l-15 -15 a9 9 0 0 1 15 -11 a9 9 0 0 1 15 11 Z" fill="var(--accent-2)"/></g></g>
+            </svg>
+          </div>
+        </section>
+
+        <!-- SCENE 8 — CTA -->
+        <section class="scene" data-seg="7">
+          <span class="index anim-fade-in" style="--d:.6s">08</span>
+          <div class="kicker anim-fade-up" style="--d:.05s">Your move</div>
+          <h1 class="head anim-fade-up" style="--d:.18s; font-size:104px; margin:20px 0 24px; max-width:12ch;">Drop <span class="em">&ldquo;5k&rdquo;</span> below.</h1>
+          <p class="support anim-fade-up" style="--d:.32s; max-width:23ch;">Then go close your next deal.</p>
+          <div class="anim-scale" style="--d:.46s; margin-top:40px; align-self:center; display:flex; align-items:center; gap:30px;">
+            <svg width="200" height="160" viewBox="0 0 200 160" fill="none">
+              <path d="M30 24 h120 a26 26 0 0 1 26 26 v50 a26 26 0 0 1 -26 26 h-80 l-40 32 v-32 a26 26 0 0 1 -26 -26 v-50 a26 26 0 0 1 26 -26 Z" fill="var(--accent)"/>
+              <text x="92" y="92" text-anchor="middle" font-family="Bricolage Grotesque" font-size="48" font-weight="800" fill="#fff">5k</text>
+            </svg>
+            <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
+              <circle cx="60" cy="60" r="52" fill="var(--accent-2)"/>
+              <path class="draw" style="--d:1s" d="M38 62 l16 18 l30 -38" stroke="#fff" stroke-width="9" fill="none" stroke-linecap="round" stroke-linejoin="round" pathLength="1"/>
+            </svg>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- caption band straddling the seam -->
+      <div id="cap-layer"><div id="cap-band"><div id="cap-inner"></div></div></div>
+
+      <div id="video-zone">
+        <div class="vz-label">YOUR VIDEO HERE<small>bottom 50% · talking-head footage</small></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="progress"><span></span></div>
+  <div id="controls">
+    <button id="prev">&lsaquo; Prev</button>
+    <button id="play" class="primary">&#9658; Play</button>
+    <button id="next">Next &rsaquo;</button>
+    <button id="replay">&#8635; Replay scene</button>
+    <span id="seg-readout"></span>
+  </div>
+  <p class="hint">Captions in the middle animate word-by-word in sync with each beat. Screen-record the top + caption band over your footage. Prev/Next (or &larr; &rarr;) jump beats; spacebar plays/pauses.</p>
+
+<script>
+  const SEGMENTS = [
+    { label:"0:00 · Hook",        secs:5, cap:"These three moves took me from zero to $5K a month as a video editor" },
+    { label:"0:05 · Cold DMs",    secs:4, cap:"Number one: cold DMs. Start a conversation, but don't set your offer yet" },
+    { label:"0:09 · Don't pitch", secs:5, cap:"Pitch too early and you're left on read forever. No wonder they never reply" },
+    { label:"0:14 · Comment 5k",  secs:5, cap:"Want the exact scripts I used to close cold DMs? Comment 5k and I'll send it" },
+    { label:"0:19 · Value first", secs:5, cap:"Number two: send value up front. If it's only about you, nobody cares" },
+    { label:"0:24 · Usable asset",secs:4, cap:"Send a better edit, hook, or script they can apply in their niche" },
+    { label:"0:28 · Content",     secs:9, cap:"Number three: create content. Every post builds your brand and positions you as the expert, bringing inbound leads" },
+    { label:"0:37 · CTA",         secs:5, cap:"Don't forget to drop 5k in the comments and close your next deal" },
+  ];
+
+  const scenes = [...document.querySelectorAll('.scene')];
+  const bar = document.querySelector('#progress span');
+  const readout = document.querySelector('#seg-readout');
+  const capInner = document.querySelector('#cap-inner');
+  let i = 0, playing = false, t0 = 0, raf = 0, capSpans = [];
+
+  function fitScale(){
+    const s = Math.min((window.innerHeight-130)/1920, (window.innerWidth-40)/1080, 1);
+    const el = document.querySelector('#scaler');
+    el.style.transform = `scale(${s})`; el.style.height = (1920*s)+'px'; el.style.width = (1080*s)+'px';
+  }
+  window.addEventListener('resize', fitScale); fitScale();
+
+  function renderCaption(text){
+    capInner.innerHTML = text.split(/\s+/).map(w=>`<span>${w}</span>`).join(' ');
+    capSpans = [...capInner.querySelectorAll('span')];
+  }
+  function litUpTo(frac){
+    const n = Math.round(frac * capSpans.length);
+    capSpans.forEach((s,idx)=>{ s.classList.toggle('lit', idx<n); s.classList.toggle('cur', idx===n-1 && frac<1); });
+  }
+  function litAll(){ capSpans.forEach(s=>{ s.classList.add('lit'); s.classList.remove('cur'); }); }
+
+  function show(n){
+    i = (n + scenes.length) % scenes.length;
+    scenes.forEach(s => s.classList.remove('active'));
+    void scenes[i].offsetWidth;
+    scenes[i].classList.add('active');
+    const seg = SEGMENTS[i] || {label:`Scene ${i+1}`, secs:5, cap:""};
+    renderCaption(seg.cap || ""); litAll();
+    readout.textContent = `${i+1}/${scenes.length} — ${seg.label} (${seg.secs}s)`;
+    t0 = performance.now();
+  }
+  function tick(now){
+    if(!playing) return;
+    const seg = SEGMENTS[i] || {secs:5};
+    const p = Math.min((now - t0)/(seg.secs*1000), 1);
+    bar.style.width = (p*100)+'%';
+    litUpTo(p);
+    if(p >= 1){
+      if(i < scenes.length-1){ show(i+1); litUpTo(0); }
+      else { playing=false; document.querySelector('#play').innerHTML='&#9658; Play'; bar.style.width='100%'; litAll(); return; }
+    }
+    raf = requestAnimationFrame(tick);
+  }
+  function play(){ playing=true; document.querySelector('#play').innerHTML='&#10074;&#10074; Pause'; litUpTo(0); t0=performance.now(); raf=requestAnimationFrame(tick); }
+  function pause(){ playing=false; document.querySelector('#play').innerHTML='&#9658; Play'; cancelAnimationFrame(raf); litAll(); }
+
+  document.querySelector('#play').onclick   = ()=> playing ? pause() : play();
+  document.querySelector('#next').onclick   = ()=>{ pause(); show(i+1); bar.style.width='0'; };
+  document.querySelector('#prev').onclick   = ()=>{ pause(); show(i-1); bar.style.width='0'; };
+  document.querySelector('#replay').onclick = ()=>{ show(i); bar.style.width='0'; };
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'){ pause(); show(i+1); bar.style.width='0'; }
+    if(e.key==='ArrowLeft'){ pause(); show(i-1); bar.style.width='0'; }
+    if(e.key===' '){ e.preventDefault(); playing?pause():play(); }
+  });
+  show(0);
+</script>
+</body>
+</html>

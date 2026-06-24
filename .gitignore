@@ -1,0 +1,15 @@
+# Secrets — never commit real keys
+.env
+*.env
+!.env.example
+
+# Dependencies
+node_modules/
+
+# Separate cloned repo (1.3GB, has its own git history) — install HyperFrames separately
+hyperframes/
+
+# Generated / scratch artifacts
+output/
+temp_audio.mp3
+*.tmp

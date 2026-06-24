@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Money Basics — Reel Design</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700;9..144,900&family=Inter+Tight:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg:#EDE4D3; --surface:#F7F1E6; --surface-2:#E3D6BF;
+    --ink:#2C2622; --ink-soft:#6B5E4F; --line:#C9B89A;
+    --accent:#C8674B; --accent-2:#2F6360; --accent-3:#D9A441;
+    --font-display:'Fraunces', Georgia, serif;
+    --font-body:'Inter Tight', system-ui, sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html,body{ height:100%; }
+  body{ background:#1c1916; font-family:var(--font-body); color:var(--ink);
+    display:flex; flex-direction:column; align-items:center; min-height:100vh;
+    padding:24px 0 40px; gap:20px; -webkit-font-smoothing:antialiased; }
+
+  #scaler{ transform-origin:top center; }
+  #stage{ width:1080px; height:1920px; position:relative; background:var(--bg);
+    overflow:hidden; border-radius:18px; box-shadow:0 30px 90px rgba(0,0,0,.5); }
+
+  /* faint paper grain over the whole stage */
+  #stage::after{ content:""; position:absolute; inset:0; pointer-events:none; opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E"); }
+
+  #design-zone{ position:absolute; inset:0 0 960px 0; overflow:hidden; }
+  #video-zone{ position:absolute; inset:960px 0 0 0; display:flex; align-items:center; justify-content:center;
+    background:repeating-linear-gradient(45deg, rgba(0,0,0,.018) 0 22px, transparent 22px 44px), var(--surface-2);
+    border-top:2px dashed var(--line); }
+  #video-zone .vz-label{ font-family:var(--font-body); color:var(--ink-soft); font-size:30px;
+    letter-spacing:.04em; text-align:center; opacity:.65; }
+  #video-zone .vz-label small{ display:block; font-size:20px; margin-top:8px; opacity:.8; }
+
+  .scene{ position:absolute; inset:0; padding:80px; display:flex; flex-direction:column;
+    justify-content:center; opacity:0; visibility:hidden; }
+  .scene.active{ opacity:1; visibility:visible; }
+
+  .kicker{ font-family:var(--font-body); color:var(--accent); font-weight:700;
+    letter-spacing:.16em; text-transform:uppercase; font-size:25px; }
+  .head{ font-family:var(--font-display); color:var(--ink); line-height:1.0;
+    font-weight:600; letter-spacing:-.01em; }
+  .support{ font-family:var(--font-body); color:var(--ink-soft); font-size:34px; line-height:1.38; }
+  .em{ color:var(--accent); }
+  .index{ position:absolute; top:64px; right:80px; font-family:var(--font-display);
+    font-size:40px; color:var(--line); font-weight:600; }
+  .rule{ width:84px; height:5px; background:var(--accent); border-radius:9px; }
+
+  /* animation utilities */
+  .anim-fade-up,.anim-fade-in,.anim-scale,.anim-slide-l,.anim-slide-r,.anim-blur{
+    opacity:0; animation-fill-mode:forwards; animation-duration:.85s;
+    animation-timing-function:var(--ease); animation-delay:var(--d,0s); }
+  .scene.active .anim-fade-up{ animation-name:fadeUp; }
+  .scene.active .anim-fade-in{ animation-name:fadeIn; }
+  .scene.active .anim-scale  { animation-name:scaleIn; }
+  .scene.active .anim-slide-l{ animation-name:slideL; }
+  .scene.active .anim-slide-r{ animation-name:slideR; }
+  .scene.active .anim-blur   { animation-name:blurIn; }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(46px)} to{opacity:1; transform:none} }
+  @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+  @keyframes scaleIn{ from{opacity:0; transform:scale(.82)} to{opacity:1; transform:scale(1)} }
+  @keyframes slideL{ from{opacity:0; transform:translateX(70px)} to{opacity:1; transform:none} }
+  @keyframes slideR{ from{opacity:0; transform:translateX(-70px)} to{opacity:1; transform:none} }
+  @keyframes blurIn{ from{opacity:0; filter:blur(14px)} to{opacity:1; filter:blur(0)} }
+  .scene.active .draw{ stroke-dasharray:1; stroke-dashoffset:1;
+    animation:draw 1.3s var(--ease) forwards; animation-delay:var(--d,0s); }
+  @keyframes draw{ to{ stroke-dashoffset:0 } }
+  .float{ animation:float 5.5s ease-in-out infinite; }
+  @keyframes float{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-16px)} }
+  .spin-slow{ animation:spin 26s linear infinite; transform-origin:center; }
+  @keyframes spin{ to{ transform:rotate(360deg) } }
+  @media (prefers-reduced-motion: reduce){ *{ animation-duration:.001s !important; animation-iteration-count:1 !important; } }
+
+  /* controls */
+  #controls{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:center;
+    font-family:var(--font-body); color:#e8e0d2; max-width:560px; }
+  #controls button{ background:#2c2622; color:#f3ead9; border:1px solid #4a3f33; padding:11px 18px;
+    border-radius:10px; font-size:15px; cursor:pointer; transition:background .2s, transform .1s; }
+  #controls button:hover{ background:#3a322a; }
+  #controls button:active{ transform:translateY(1px); }
+  #controls .primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  #seg-readout{ font-size:14px; opacity:.85; min-width:240px; text-align:center; }
+  #progress{ width:100%; max-width:560px; height:6px; background:#3a332b; border-radius:99px; overflow:hidden; }
+  #progress span{ display:block; height:100%; width:0; background:var(--accent); transition:width .12s linear; }
+  .hint{ font-family:var(--font-body); color:#9b8f7c; font-size:13px; max-width:560px; text-align:center; line-height:1.5; }
+</style>
+</head>
+<body>
+
+  <div id="scaler">
+    <div id="stage">
+      <div id="design-zone">
+
+        <!-- SCENE 1 — Hook: the salary myth -->
+        <section class="scene active" data-seg="0">
+          <span class="index anim-fade-in" style="--d:.6s">01</span>
+          <div class="kicker anim-fade-up" style="--d:.05s">The money myth</div>
+          <h1 class="head anim-fade-up" style="--d:.18s; font-size:110px; max-width:13ch; margin:22px 0 30px;">It&rsquo;s not about your <span class="em">salary.</span></h1>
+          <p class="support anim-fade-up" style="--d:.34s; max-width:22ch;">The size of your paycheck isn&rsquo;t what builds wealth.</p>
+          <div class="anim-scale float" style="--d:.5s; margin-top:60px; align-self:flex-start;">
+            <svg width="420" height="240" viewBox="0 0 420 240" fill="none">
+              <rect x="14" y="40" width="392" height="176" rx="18" fill="var(--surface)" stroke="var(--ink)" stroke-width="4"/>
+              <rect x="40" y="66" width="340" height="124" rx="10" fill="none" stroke="var(--line)" stroke-width="3" stroke-dasharray="10 9"/>
+              <circle cx="210" cy="128" r="46" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="4"/>
+              <text x="210" y="146" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="58" fill="var(--ink)">$</text>
+              <circle cx="92" cy="92" r="13" fill="var(--accent-3)"/>
+              <circle cx="328" cy="164" r="13" fill="var(--accent-3)"/>
+              <line class="draw" style="--d:.9s" x1="40" y1="210" x2="384" y2="44" stroke="var(--accent)" stroke-width="16" stroke-linecap="round" pathLength="1"/>
+            </svg>
+          </div>
+        </section>
+
+        <!-- SCENE 2 — The real lever: time -->
+        <section class="scene" data-seg="1">
+          <span class="index anim-fade-in" style="--d:.6s">02</span>
+          <div class="kicker anim-fade-up" style="--d:.05s">The real cheat code</div>
+          <h1 class="head anim-fade-up" style="--d:.18s; font-size:128px; margin:22px 0 28px;">It&rsquo;s <span class="em">time.</span></h1>
+          <p class="support anim-fade-up" style="--d:.32s; max-width:22ch;">Time in the market is the one advantage anyone can use.</p>
+          <div class="anim-scale" style="--d:.46s; margin-top:54px; align-self:center;">
+            <svg width="300" height="380" viewBox="0 0 300 380" fill="none">
+              <rect x="40" y="20" width="220" height="20" rx="8" fill="var(--ink)"/>
+              <rect x="40" y="340" width="220" height="20" rx="8" fill="var(--ink)"/>
+              <path d="M64 40 C64 130 150 168 150 190 C150 212 64 250 64 340" stroke="var(--accent-2)" stroke-width="6" fill="none"/>
+              <path d="M236 40 C236 130 150 168 150 190 C150 212 236 250 236 340" stroke="var(--accent-2)" stroke-width="6" fill="none"/>
+              <!-- top sand draining -->
+              <path d="M78 52 L222 52 L150 176 Z" fill="var(--accent-3)" class="anim-fade-in" style="--d:.9s"/>
+              <!-- bottom sand piled -->
+              <path d="M96 328 L204 328 L150 250 Z" fill="var(--accent-3)" opacity=".55" class="anim-fade-in" style="--d:1.1s"/>
+              <circle cx="150" cy="190" r="7" fill="var(--accent)"/>
+            </svg>
+          </div>
+        </section>
+
+        <!-- SCENE 3 — $200/month at 25 -->
+        <section class="scene" data-seg="2">
+          <span class="index anim-fade-in" style="--d:.6s">03</span>
+          <div class="kicker anim-fade-up" style="--d:.05s">Start small, start early</div>
+          <h1 class="head anim-fade-up" style="--d:.18s; font-size:104px; margin:22px 0 26px; max-width:12ch;"><span class="em">$200</span> a month. <br>From age 25.</h1>
+          <div class="anim-fade-up" style="--d:.34s; margin-top:46px; align-self:center;">
+            <svg width="560" height="300" viewBox="0 0 560 300" fill="none">
+              <!-- baseline -->
+              <line x1="20" y1="276" x2="540" y2="276" stroke="var(--line)" stroke-width="3"/>
+              <!-- three ascending coin stacks -->
+              <g class="anim-scale" style="--d:.5s; transform-origin:bottom;">
+                <g transform="translate(70,0)">
+                  <ellipse cx="0" cy="250" rx="58" ry="20" fill="var(--accent-3)" stroke="var(--ink)" stroke-width="3"/>
+                  <ellipse cx="0" cy="222" rx="58" ry="20" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/>
+                  <ellipse cx="0" cy="194" rx="58" ry="20" fill="var(--accent-3)" stroke="var(--ink)" stroke-width="3"/>
+                </g>
+              </g>
+              <g class="anim-scale" style="--d:.66s; transform-origin:bottom;">
+                <g transform="translate(230,0)">
+                  <ellipse cx="0" cy="250" rx="58" ry="20" fill="var(--accent-3)" stroke="var(--ink)" stroke-width="3"/>
+                  <ellipse cx="0" cy="222" rx="58" ry="20" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/>
+                  <ellipse cx="0" cy="194" rx="58" ry="20" fill="var(--accent-3)" stroke="var(--ink)" stroke-width="3"/>
+                  <ellipse cx="0" cy="166" rx="58" ry="20" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/>
+                  <ellipse cx="0" cy="138" rx="58" ry="20" fill="var(--accent-3)" stroke="var(--ink)" stroke-width="3"/>
+                </g>
+              </g>
+              <g class="anim-scale" style="--d:.82s; transform-origin:bottom;">
+                <g transform="translate(390,0)">
+                  <ellipse cx="0" cy="250" rx="58" ry="20" fill="var(--accent-3)" stroke="var(--ink)" stroke-width="3"/>
+                  <ellipse cx="0" cy="222" rx="58" ry="20" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/>
+                  <ellipse cx="0" cy="194" rx="58" ry="20" fill="var(--accent-3)" stroke="var(--ink)" stroke-width="3"/>
+                  <ellipse cx="0" cy="166" rx="58" ry="20" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/>
+                  <ellipse cx="0" cy="138" rx="58" ry="20" fill="var(--accent-3)" stroke="var(--ink)" stroke-width="3"/>
+                  <ellipse cx="0" cy="110" rx="58" ry="20" fill="var(--surface)" stroke="var(--ink)" stroke-width="3"/>
+                  <ellipse cx="0" cy="82" rx="58" ry="20" fill="var(--accent-3)" stroke="var(--ink)" stroke-width="3"/>
+                </g>
+              </g>
+              <path class="draw" style="--d:1s" d="M70 70 L470 40" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" marker-end="url(#ar)" pathLength="1"/>
+              <defs><marker id="ar" markerWidth="14" markerHeight="14" refX="6" refY="6" orient="auto"><path d="M0 0 L12 6 L0 12 Z" fill="var(--accent)"/></marker></defs>
+            </svg>
+          </div>
+        </section>
+
+        <!-- SCENE 4 — the reveal: $500K+ -->
+        <section class="scene" data-seg="3">
+          <span class="index anim-fade-in" style="--d:.6s">04</span>
+          <div class="kicker anim-fade-up" style="--d:.05s">By retirement</div>
+          <h1 class="head anim-scale" style="--d:.18s; font-size:200px; line-height:.92; margin:14px 0 6px;"><span class="em">$500K</span><span style="font-size:120px;">+</span></h1>
+          <p class="support anim-fade-up" style="--d:.4s; max-width:24ch;">From $200 a month. That&rsquo;s what time does to small, steady habits.</p>
+          <div class="anim-fade-in" style="--d:.3s; position:absolute; left:0; right:0; bottom:40px;">
+            <svg width="100%" height="300" viewBox="0 0 920 300" preserveAspectRatio="none" fill="none">
+              <defs><linearGradient id="g4" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="var(--accent-3)" stop-opacity=".55"/>
+                <stop offset="1" stop-color="var(--accent-3)" stop-opacity="0"/>
+              </linearGradient></defs>
+              <path d="M0 300 L0 250 C220 240 360 210 520 140 C660 80 780 50 920 24 L920 300 Z" fill="url(#g4)"/>
+              <path class="draw" style="--d:.5s" d="M0 250 C220 240 360 210 520 140 C660 80 780 50 920 24" stroke="var(--accent)" stroke-width="7" fill="none" stroke-linecap="round" pathLength="1"/>
+            </svg>
+          </div>
+        </section>
+
+        <!-- SCENE 5 — the cost of waiting -->
+        <section class="scene" data-seg="4">
+          <span class="index anim-fade-in" style="--d:.6s">05</span>
+          <div class="kicker anim-fade-up" style="--d:.05s">Start at 35 instead?</div>
+          <h1 class="head anim-fade-up" style="--d:.18s; font-size:96px; margin:22px 0 30px; max-width:13ch;">You end up with <span class="em">less than half.</span></h1>
+          <div class="anim-fade-up" style="--d:.34s; align-self:center; margin-top:20px;">
+            <svg width="640" height="320" viewBox="0 0 640 320" fill="none">
+              <line x1="40" y1="290" x2="610" y2="290" stroke="var(--line)" stroke-width="3"/>
+              <line x1="40" y1="290" x2="40" y2="30" stroke="var(--line)" stroke-width="3"/>
+              <!-- start at 25 (high) -->
+              <path class="draw" style="--d:.5s" d="M40 290 C220 280 360 230 600 60" stroke="var(--accent)" stroke-width="8" fill="none" stroke-linecap="round" pathLength="1"/>
+              <circle class="anim-scale" style="--d:1.5s" cx="600" cy="60" r="13" fill="var(--accent)"/>
+              <!-- start at 35 (low) -->
+              <path class="draw" style="--d:.8s" d="M210 290 C330 286 450 250 600 178" stroke="var(--accent-2)" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="1" pathLength="1"/>
+              <circle class="anim-scale" style="--d:1.7s" cx="600" cy="178" r="13" fill="var(--accent-2)"/>
+              <!-- gap bracket -->
+              <line class="anim-fade-in" style="--d:1.9s" x1="624" y1="60" x2="624" y2="178" stroke="var(--ink-soft)" stroke-width="3"/>
+              <text class="anim-fade-in" style="--d:2s" x="585" y="48" text-anchor="end" font-family="Inter Tight, sans-serif" font-size="26" font-weight="600" fill="var(--accent)">age 25</text>
+              <text class="anim-fade-in" style="--d:2s" x="585" y="206" text-anchor="end" font-family="Inter Tight, sans-serif" font-size="26" font-weight="600" fill="var(--accent-2)">age 35</text>
+            </svg>
+          </div>
+        </section>
+
+        <!-- SCENE 6 — 10 years = the difference -->
+        <section class="scene" data-seg="5">
+          <span class="index anim-fade-in" style="--d:.6s">06</span>
+          <div class="kicker anim-fade-up" style="--d:.05s">Same monthly amount</div>
+          <h1 class="head anim-fade-up" style="--d:.18s; font-size:108px; margin:22px 0 12px; max-width:12ch;"><span class="em">10 years</span> made all the difference.</h1>
+          <div class="anim-fade-up" style="--d:.36s; align-self:center; margin-top:30px;">
+            <svg width="520" height="346" viewBox="0 0 520 346" fill="none">
+              <line x1="30" y1="296" x2="490" y2="296" stroke="var(--line)" stroke-width="3"/>
+              <!-- tall bar: started at 25 -->
+              <rect class="anim-scale" style="--d:.5s; transform-origin:bottom;" x="110" y="56" width="120" height="240" rx="14" fill="var(--accent)"/>
+              <text x="170" y="40" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="34" fill="var(--ink)">$500K</text>
+              <!-- half bar: started at 35 -->
+              <rect class="anim-scale" style="--d:.72s; transform-origin:bottom;" x="300" y="176" width="120" height="120" rx="14" fill="var(--accent-2)"/>
+              <text x="360" y="160" text-anchor="middle" font-family="Fraunces, serif" font-weight="700" font-size="34" fill="var(--ink)">$230K</text>
+              <text x="170" y="324" text-anchor="middle" font-family="Inter Tight, sans-serif" font-size="24" fill="var(--ink-soft)">from 25</text>
+              <text x="360" y="324" text-anchor="middle" font-family="Inter Tight, sans-serif" font-size="24" fill="var(--ink-soft)">from 35</text>
+            </svg>
+          </div>
+        </section>
+
+        <!-- SCENE 7 — CTA -->
+        <section class="scene" data-seg="6">
+          <span class="index anim-fade-in" style="--d:.6s">07</span>
+          <div class="kicker anim-fade-up" style="--d:.05s">The second best time is today</div>
+          <h1 class="head anim-fade-up" style="--d:.18s; font-size:104px; margin:22px 0 28px; max-width:12ch;">Start <span class="em">today.</span></h1>
+          <p class="support anim-fade-up" style="--d:.32s; max-width:24ch; margin-bottom:50px;">The best time was years ago — the next best is right now.</p>
+          <div class="anim-scale" style="--d:.46s; align-self:flex-start; display:flex; align-items:center; gap:34px;">
+            <svg width="150" height="150" viewBox="0 0 150 150" fill="none">
+              <circle cx="75" cy="75" r="68" fill="var(--surface)" stroke="var(--ink)" stroke-width="4"/>
+              <circle cx="75" cy="60" r="26" fill="var(--accent-2)"/>
+              <path d="M30 122 C36 92 60 80 75 80 C90 80 114 92 120 122 Z" fill="var(--accent-2)"/>
+              <circle cx="122" cy="120" r="26" fill="var(--accent)" stroke="var(--bg)" stroke-width="5"/>
+              <path d="M122 109 L122 131 M111 120 L133 120" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+            </svg>
+            <div style="background:var(--accent); color:#fff; font-family:var(--font-body); font-weight:700;
+              font-size:42px; padding:22px 52px; border-radius:60px;">Follow</div>
+          </div>
+        </section>
+
+      </div>
+
+      <div id="video-zone">
+        <div class="vz-label">YOUR VIDEO HERE<small>bottom 50% · talking-head footage</small></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="progress"><span></span></div>
+  <div id="controls">
+    <button id="prev">&lsaquo; Prev</button>
+    <button id="play" class="primary">&#9658; Play</button>
+    <button id="next">Next &rsaquo;</button>
+    <button id="replay">&#8635; Replay scene</button>
+    <span id="seg-readout"></span>
+  </div>
+  <p class="hint">Preview here, then screen-record just the top design zone. Use Prev/Next (or &larr; &rarr;) to re-record a single beat. Spacebar plays/pauses. Timings match your transcript.</p>
+
+<script>
+  const SEGMENTS = [
+    { label: "00:00 · Hook",            secs: 5 },
+    { label: "00:05 · It's time",       secs: 6 },
+    { label: "00:11 · $200/mo at 25",   secs: 6 },
+    { label: "00:17 · $500K reveal",    secs: 6 },
+    { label: "00:23 · Cost of waiting", secs: 7 },
+    { label: "00:30 · 10 years",        secs: 6 },
+    { label: "00:36 · Follow",          secs: 6 },
+  ];
+
+  const scenes = [...document.querySelectorAll('.scene')];
+  const bar = document.querySelector('#progress span');
+  const readout = document.querySelector('#seg-readout');
+  let i = 0, playing = false, t0 = 0, raf = 0;
+
+  function fitScale(){
+    const s = Math.min((window.innerHeight-130)/1920, (window.innerWidth-40)/1080, 1);
+    const el = document.querySelector('#scaler');
+    el.style.transform = `scale(${s})`;
+    el.style.height = (1920*s)+'px'; el.style.width = (1080*s)+'px';
+  }
+  window.addEventListener('resize', fitScale); fitScale();
+
+  function show(n){
+    i = (n + scenes.length) % scenes.length;
+    scenes.forEach(s => s.classList.remove('active'));
+    void scenes[i].offsetWidth;
+    scenes[i].classList.add('active');
+    const seg = SEGMENTS[i] || {label:`Scene ${i+1}`, secs:5};
+    readout.textContent = `${i+1}/${scenes.length} — ${seg.label} (${seg.secs}s)`;
+    t0 = performance.now();
+  }
+  function tick(now){
+    if(!playing) return;
+    const seg = SEGMENTS[i] || {secs:5};
+    const p = Math.min((now - t0)/(seg.secs*1000), 1);
+    bar.style.width = (p*100)+'%';
+    if(p >= 1){
+      if(i < scenes.length-1){ show(i+1); }
+      else { playing=false; document.querySelector('#play').innerHTML='&#9658; Play'; bar.style.width='100%'; return; }
+    }
+    raf = requestAnimationFrame(tick);
+  }
+  function play(){ playing=true; document.querySelector('#play').innerHTML='&#10074;&#10074; Pause'; t0=performance.now(); raf=requestAnimationFrame(tick); }
+  function pause(){ playing=false; document.querySelector('#play').innerHTML='&#9658; Play'; cancelAnimationFrame(raf); }
+
+  document.querySelector('#play').onclick   = ()=> playing ? pause() : play();
+  document.querySelector('#next').onclick   = ()=>{ pause(); show(i+1); bar.style.width='0'; };
+  document.querySelector('#prev').onclick   = ()=>{ pause(); show(i-1); bar.style.width='0'; };
+  document.querySelector('#replay').onclick = ()=>{ show(i); bar.style.width='0'; };
+  document.addEventListener('keydown', e=>{
+    if(e.key==='ArrowRight'){ pause(); show(i+1); bar.style.width='0'; }
+    if(e.key==='ArrowLeft'){ pause(); show(i-1); bar.style.width='0'; }
+    if(e.key===' '){ e.preventDefault(); playing?pause():play(); }
+  });
+  show(0);
+</script>
+</body>
+</html>

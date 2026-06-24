@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(git clone https://github.com/manthanpatelll/leadgenman-video-skills.git \"$env:TEMP\\\\leadgenman-video-skills\")"
+    ]
+  }
+}

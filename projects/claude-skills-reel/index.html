@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="hyperframes-version" content="1">
+
+  <style>
+    @font-face {
+      font-family: 'Bricolage Grotesque';
+      src: url('fonts/BricolageGrotesque-Bold.woff2') format('woff2');
+      font-weight: 700 800;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Inter';
+      src: url('fonts/Inter-Bold.woff2') format('woff2');
+      font-weight: 600 900;
+      font-style: normal;
+    }
+    @font-face {
+      font-family: 'Inter';
+      src: url('fonts/Inter-Regular.woff2') format('woff2');
+      font-weight: 400;
+      font-style: normal;
+    }
+  </style>
+
+  <style>
+    :root {
+      --bg:       #0B0D17;
+      --surface:  #13162A;
+      --card:     #1C2038;
+      --card-2:   #212540;
+      --blue:     #5B8EFF;
+      --purple:   #A78BFA;
+      --green:    #34D399;
+      --white:    #F0F2FF;
+      --muted:    #6B7494;
+      --border:   rgba(255,255,255,0.07);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 1080px;
+      height: 1920px;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    /* ─── BASE SCENE ─── */
+    .scene {
+      position: absolute;
+      top: 0; left: 0;
+      width: 1080px;
+      height: 1920px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 100px 72px 120px;
+      gap: 0;
+    }
+
+    /* Dot-grid background */
+    .dot-grid {
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, rgba(91,142,255,0.18) 1.5px, transparent 1.5px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Glow orbs */
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(110px);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* All content above bg */
+    .scene > * { position: relative; z-index: 1; }
+
+    /* ─── TYPOGRAPHY ─── */
+    .eyebrow {
+      font-family: 'Inter', sans-serif;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-bottom: 28px;
+    }
+
+    .headline {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 104px;
+      font-weight: 800;
+      line-height: 0.92;
+      letter-spacing: -0.03em;
+      color: var(--white);
+      text-align: center;
+    }
+
+    .subline {
+      font-family: 'Inter', sans-serif;
+      font-size: 38px;
+      font-weight: 400;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.45;
+      margin-top: 32px;
+    }
+
+    .accent-blue   { color: var(--blue); }
+    .accent-purple { color: var(--purple); }
+    .accent-green  { color: var(--green); }
+
+    /* ─── CHAT WINDOW ─── */
+    #chat-window {
+      width: 920px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      overflow: hidden;
+      margin-top: 52px;
+    }
+
+    .chat-bar {
+      background: var(--card);
+      padding: 22px 36px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .dot { width: 16px; height: 16px; border-radius: 50%; }
+
+    .chat-bar-label {
+      font-family: 'Inter', sans-serif;
+      font-size: 26px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-left: 16px;
+      letter-spacing: 0.02em;
+    }
+
+    .chat-body {
+      padding: 40px 36px 44px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    .msg {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+    }
+
+    .avatar {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .bubble {
+      font-family: 'Inter', sans-serif;
+      font-size: 30px;
+      font-weight: 400;
+      color: var(--white);
+      background: var(--card-2);
+      padding: 20px 28px;
+      border-radius: 18px;
+      line-height: 1.5;
+      max-width: 720px;
+    }
+
+    .bubble.user { background: var(--blue); }
+
+    .cursor-blink {
+      display: inline-block;
+      width: 3px;
+      height: 30px;
+      background: var(--blue);
+      vertical-align: middle;
+      margin-left: 4px;
+      border-radius: 2px;
+    }
+
+    /* ─── SKILL CARDS ─── */
+    .skill-card {
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 26px;
+      padding: 38px 44px;
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      margin-top: 22px;
+    }
+
+    .skill-icon-box {
+      width: 84px; height: 84px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .skill-title {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 50px;
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1.1;
+    }
+
+    .skill-desc {
+      font-family: 'Inter', sans-serif;
+      font-size: 30px;
+      font-weight: 400;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* ─── CTA PILL ─── */
+    #cta-pill {
+      background: var(--blue);
+      color: #fff;
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-size: 46px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      padding: 30px 68px;
+      border-radius: 100px;
+      margin-top: 52px;
+    }
+
+    /* ─── PROGRESS BAR ─── */
+    #progress-bar {
+      position: absolute;
+      bottom: 0; left: 0;
+      height: 5px;
+      background: var(--blue);
+      z-index: 100;
+      transform-origin: left center;
+    }
+  </style>
+</head>
+<body>
+
+<div id="stage"
+     data-composition-id="claude-skills-reel"
+     data-start="0"
+     data-width="1080"
+     data-height="1920">
+
+  <!-- Progress bar -->
+  <div id="progress-bar"></div>
+
+
+  <!-- ═══════════════════════════════════
+       SCENE 1 — HOOK  (0 → 4s)
+       "Meet Claude." + chat preview
+  ═══════════════════════════════════ -->
+  <div id="s1" class="clip scene" data-start="0" data-duration="4" data-track-index="0">
+
+    <div class="dot-grid"></div>
+    <div class="orb" style="width:700px;height:700px;background:rgba(91,142,255,0.10);top:-120px;left:50%;transform:translateX(-50%);"></div>
+    <div class="orb" style="width:400px;height:400px;background:rgba(167,139,250,0.07);bottom:160px;right:-80px;"></div>
+
+    <div id="s1-eye" class="eyebrow">The AI that actually works</div>
+
+    <h1 id="s1-head" class="headline">
+      Meet<br>
+      <span class="accent-blue">Claude.</span>
+    </h1>
+
+    <p id="s1-sub" class="subline">Not just another chatbot.</p>
+
+    <div id="s1-chat" style="position:relative;z-index:1;">
+      <div id="chat-window">
+        <div class="chat-bar">
+          <div class="dot" style="background:#FF5F57;"></div>
+          <div class="dot" style="background:#FEBC2E;"></div>
+          <div class="dot" style="background:#28C840;"></div>
+          <span class="chat-bar-label">Claude · Anthropic</span>
+        </div>
+        <div class="chat-body">
+          <div class="msg" id="s1-msg-u">
+            <div class="avatar" style="background:rgba(91,142,255,0.3);color:var(--blue);">Y</div>
+            <div class="bubble user">Build me a Python automation</div>
+          </div>
+          <div class="msg" id="s1-msg-c">
+            <div class="avatar" style="background:linear-gradient(135deg,#A78BFA,#5B8EFF);">C</div>
+            <div class="bubble">
+              Sure. Here's what I'll build for you
+              <span class="cursor-blink" id="s1-cur"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════
+       SCENE 2 — SKILLS  (4 → 10s)
+       3 skill cards animate in
+  ═══════════════════════════════════ -->
+  <div id="s2" class="clip scene" data-start="4" data-duration="6" data-track-index="0">
+
+    <div class="dot-grid"></div>
+    <div class="orb" style="width:600px;height:600px;background:rgba(52,211,153,0.08);top:200px;left:-120px;"></div>
+    <div class="orb" style="width:400px;height:400px;background:rgba(167,139,250,0.07);bottom:300px;right:-80px;"></div>
+
+    <div id="s2-eye" class="eyebrow">What Claude can do</div>
+    <h2 id="s2-head" class="headline" style="font-size:82px;">
+      3 skills that<br>create <span class="accent-green">leverage</span>
+    </h2>
+
+    <!-- Card 1: Code -->
+    <div id="s2-c1" class="skill-card">
+      <div class="skill-icon-box" style="background:rgba(91,142,255,0.12);">
+        <svg width="46" height="46" viewBox="0 0 46 46" fill="none">
+          <path d="M17 16l-8 7 8 7M29 16l8 7-8 7" stroke="#5B8EFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M26 11l-6 24" stroke="#5B8EFF" stroke-width="3.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="skill-title">Writes code</div>
+        <div class="skill-desc">Apps, scripts &amp; automations</div>
+      </div>
+    </div>
+
+    <!-- Card 2: Automation -->
+    <div id="s2-c2" class="skill-card">
+      <div class="skill-icon-box" style="background:rgba(167,139,250,0.12);">
+        <svg width="46" height="46" viewBox="0 0 46 46" fill="none">
+          <rect x="6" y="10" width="14" height="10" rx="4" stroke="#A78BFA" stroke-width="3"/>
+          <rect x="26" y="26" width="14" height="10" rx="4" stroke="#A78BFA" stroke-width="3"/>
+          <path d="M13 20v6h20v-6" stroke="#A78BFA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="skill-title">Builds workflows</div>
+        <div class="skill-desc">Automate what slows you down</div>
+      </div>
+    </div>
+
+    <!-- Card 3: Research & Writing -->
+    <div id="s2-c3" class="skill-card">
+      <div class="skill-icon-box" style="background:rgba(52,211,153,0.12);">
+        <svg width="46" height="46" viewBox="0 0 46 46" fill="none">
+          <path d="M10 13h26M10 21h20M10 29h23" stroke="#34D399" stroke-width="3.5" stroke-linecap="round"/>
+          <circle cx="36" cy="34" r="7" fill="rgba(52,211,153,0.15)" stroke="#34D399" stroke-width="3"/>
+          <path d="M34 34l2 2 3-3" stroke="#34D399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="skill-title">Researches &amp; writes</div>
+        <div class="skill-desc">Reports, plans &amp; strategies</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ═══════════════════════════════════
+       SCENE 3 — POWER  (10 → 13s)
+       Bold statement
+  ═══════════════════════════════════ -->
+  <div id="s3" class="clip scene" data-start="10" data-duration="3" data-track-index="0">
+
+    <div class="dot-grid"></div>
+    <div class="orb" style="width:800px;height:800px;background:rgba(91,142,255,0.09);top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+
+    <h1 id="s3-head" class="headline" style="font-size:116px;line-height:0.90;">
+      AI is your<br>
+      <span class="accent-purple">unfair</span><br>
+      <span class="accent-blue">advantage.</span>
+    </h1>
+
+    <p id="s3-sub" class="subline" style="max-width:700px;margin-top:40px;">
+      Learn it before<br>everyone else does.
+    </p>
+  </div>
+
+
+  <!-- ═══════════════════════════════════
+       SCENE 4 — CTA  (13 → 15s)
+  ═══════════════════════════════════ -->
+  <div id="s4" class="clip scene" data-start="13" data-duration="2" data-track-index="0">
+
+    <div class="dot-grid"></div>
+    <div class="orb" style="width:700px;height:700px;background:rgba(91,142,255,0.11);top:40%;left:50%;transform:translate(-50%,-50%);"></div>
+
+    <h1 id="s4-head" class="headline" style="font-size:96px;">
+      Follow for<br>
+      <span class="accent-blue">daily AI</span><br>
+      tools &amp; tips.
+    </h1>
+
+    <div id="cta-pill">Comment &ldquo;CLAUDE&rdquo; ↓</div>
+  </div>
+
+
+  <!-- ═══ SFX ═══ -->
+  <audio id="sfx-w1" class="clip" data-start="3.7"  data-duration="1.2" data-track-index="4" data-volume="0.5" src="sfx/whoosh.wav"></audio>
+  <audio id="sfx-w2" class="clip" data-start="9.7"  data-duration="1.2" data-track-index="4" data-volume="0.5" src="sfx/whoosh.wav"></audio>
+  <audio id="sfx-w3" class="clip" data-start="12.7" data-duration="1.2" data-track-index="4" data-volume="0.5" src="sfx/whoosh.wav"></audio>
+
+</div><!-- /#stage -->
+
+
+<script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+<script>
+  const tl   = gsap.timeline({ paused: true });
+  const SNAP = "cubic-bezier(0.22, 1, 0.36, 1)";
+
+  /* Progress bar — grows over 15s */
+  tl.to("#progress-bar", { scaleX: 1, transformOrigin: "left center", duration: 15, ease: "none" }, 0);
+
+  /* ──────────────────────────────
+     SCENE 1: HOOK  0 → 4s
+  ────────────────────────────── */
+  tl.from("#s1",       { opacity: 0, duration: 0.3 }, 0);
+  tl.from("#s1-eye",   { y: -18, opacity: 0, duration: 0.4, ease: SNAP }, 0.1);
+  tl.from("#s1-head",  { scale: 1.42, opacity: 0, duration: 0.55, ease: "back.out(2.5)" }, 0.2);
+  tl.from("#s1-sub",   { y: 22, opacity: 0, duration: 0.38 }, 0.72);
+  tl.from("#s1-chat",  { y: 55, opacity: 0, duration: 0.5, ease: "back.out(1.6)" }, 0.95);
+  tl.from("#s1-msg-u", { x: -30, opacity: 0, duration: 0.38, ease: SNAP }, 1.45);
+  tl.from("#s1-msg-c", { x: -30, opacity: 0, duration: 0.38, ease: SNAP }, 1.85);
+  /* cursor blink */
+  tl.to("#s1-cur",     { opacity: 0, duration: 0.35, repeat: 4, yoyo: true }, 2.1);
+  /* exit: cinematic push */
+  tl.to("#s1",         { scale: 1.07, opacity: 0, duration: 0.35, ease: "power2.in" }, 3.7);
+  tl.set("#s1",        { opacity: 0 }, 4.0);
+
+
+  /* ──────────────────────────────
+     SCENE 2: SKILLS  4 → 10s
+  ────────────────────────────── */
+  tl.from("#s2",      { opacity: 0, duration: 0.25 }, 4.0);
+  tl.from("#s2-eye",  { y: -18, opacity: 0, duration: 0.38 }, 4.1);
+  tl.from("#s2-head", { scale: 1.4, opacity: 0, duration: 0.5, ease: "back.out(2.5)" }, 4.2);
+
+  /* Cards slide in from left, staggered */
+  [["#s2-c1", 4.7], ["#s2-c2", 5.35], ["#s2-c3", 6.0]].forEach(([id, t]) => {
+    tl.from(id, { x: -80, opacity: 0, duration: 0.5, ease: SNAP }, t);
+    tl.to(id,   { scale: 1.025, transformOrigin: "center", duration: 0.18, yoyo: true, repeat: 1 }, t + 0.05);
+  });
+
+  /* Cards glow on highlight */
+  tl.to("#s2-c1", { borderColor: "rgba(91,142,255,0.4)", duration: 0.3, yoyo: true, repeat: 1 }, 7.5);
+  tl.to("#s2-c2", { borderColor: "rgba(167,139,250,0.4)", duration: 0.3, yoyo: true, repeat: 1 }, 7.8);
+  tl.to("#s2-c3", { borderColor: "rgba(52,211,153,0.4)", duration: 0.3, yoyo: true, repeat: 1 }, 8.1);
+
+  /* exit: scale burst */
+  tl.to("#s2",    { scale: 1.07, opacity: 0, duration: 0.35, ease: "power2.in" }, 9.7);
+  tl.set("#s2",   { opacity: 0 }, 10.0);
+
+
+  /* ──────────────────────────────
+     SCENE 3: POWER  10 → 13s
+  ────────────────────────────── */
+  tl.from("#s3",      { opacity: 0, duration: 0.25 }, 10.0);
+  tl.from("#s3-head", { scale: 1.45, opacity: 0, duration: 0.6, ease: "back.out(2.5)" }, 10.1);
+  tl.from("#s3-sub",  { y: 28, opacity: 0, duration: 0.4 }, 10.75);
+  /* subtle breathe on headline */
+  tl.to("#s3-head",   { scale: 1.02, transformOrigin: "center", duration: 0.5, yoyo: true, repeat: 1, ease: "sine.inOut" }, 11.4);
+  /* exit */
+  tl.to("#s3",        { scale: 1.07, opacity: 0, duration: 0.3, ease: "power2.in" }, 12.7);
+  tl.set("#s3",       { opacity: 0 }, 13.0);
+
+
+  /* ──────────────────────────────
+     SCENE 4: CTA  13 → 15s
+  ────────────────────────────── */
+  tl.from("#s4",       { opacity: 0, duration: 0.25 }, 13.0);
+  tl.from("#s4-head",  { scale: 1.42, opacity: 0, duration: 0.55, ease: "back.out(2.5)" }, 13.1);
+  tl.from("#cta-pill", { scale: 0.82, opacity: 0, duration: 0.45, ease: "back.out(2.2)" }, 13.7);
+  tl.to("#cta-pill",   { scale: 1.05, transformOrigin: "center", duration: 0.28, yoyo: true, repeat: 3, ease: "power1.inOut", overwrite: "auto" }, 14.2);
+
+
+  window.__timelines = window.__timelines || {};
+  window.__timelines["claude-skills-reel"] = tl;
+</script>
+
+</body>
+</html>
